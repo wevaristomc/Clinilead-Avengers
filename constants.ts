@@ -1,23 +1,11 @@
+
 import { ClientBriefing } from './types';
 
 // --- SUPABASE CONFIGURATION ---
-// Safely access env variables to prevent "Cannot read properties of undefined"
-const getEnv = (key: string) => {
-  try {
-    // @ts-ignore
-    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
-       // @ts-ignore
-       return import.meta.env[key];
-    }
-  } catch (e) {
-    console.warn("Error reading env", e);
-  }
-  return "";
-};
-
-// Credenciais configuradas manualmente conforme solicitado
-export const SUPABASE_URL = getEnv("VITE_SUPABASE_URL") || "https://pzedkdyhfmkffdtdefxw.supabase.co"; 
-export const SUPABASE_ANON_KEY = getEnv("VITE_SUPABASE_ANON_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6ZWRrZHloZm1rZmZkdGRlZnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyNDI1MzcsImV4cCI6MjA4MDgxODUzN30.zaUzIryUqjml8e06YLnhISqmi7Fss9GnPDuk0s4s6TY";
+// IMPORTANT: Please replace the placeholders below with your actual Supabase URL and Anon Key.
+// You can find these in your Supabase Project Settings > API.
+export const SUPABASE_URL = "https://seu-projeto.supabase.co"; // <--- INSERIR URL DO SUPABASE
+export const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."; // <--- INSERIR ANON KEY DO SUPABASE
 
 export const DEFAULT_BRIEFING: ClientBriefing = {
   clientName: "Oxy Prime Hiperbárica",
@@ -50,7 +38,7 @@ Sua missão crítica é cruzar **DADOS DE CAUSA** (Logs de Atividade/Histórico 
    - ❌ ERRADO: "O CPA subiu um pouco."
    - ✅ CORRETO: "O CPA da campanha 'Institucional' subiu de R$ 15,00 para R$ 22,50 (+50%) após o ajuste de lance..."
 4. **CRUZAMENTO DE DADOS:** Você deve buscar correlações. Se o arquivo de Log diz que o orçamento aumentou dia 10, e o arquivo de Performance mostra CPA alto dia 11, você **DEVE** ligar os pontos.
-5. **CONTEXTO ANTERIOR:** Se houver "Relatórios Anteriores" fornecidos, use-os para evitar repetir sugestões já feitas ou para verificar se problemas antigos foram resolvidos.
+5. **CONTEXTO ANTERIOR (EVOLUÇÃO):** Se houver "Histórico do Banco de Dados" fornecido, compare os resultados atuais com o passado. Diga se estamos evoluindo ou regredindo.
 
 ---
 
@@ -58,10 +46,10 @@ Sua missão crítica é cruzar **DADOS DE CAUSA** (Logs de Atividade/Histórico 
 
 ### 1. 🚨 DIAGNÓSTICO ESTRATÉGICO (DEEP DIVE)
 *Esta é a seção mais importante. Escreva 3 a 5 parágrafos densos.*
+* **Evolução Comparativa:** (SE houver histórico) Compare o CPA/ROAS atual com os relatórios anteriores fornecidos.
 * **Análise de Contexto:** O investimento atual e a distribuição de verba estão alinhados com o objetivo do briefing ("${'{{objective}}'}")?
 * **Performance vs. Meta:** Estamos batendo o CPA alvo? Se não, quais campanhas específicas (cite nomes) são as culpadas?
 * **Correlação Causa-Efeito:** Analise se as alterações recentes (dos Logs) melhoraram ou pioraram os resultados (da Performance).
-* **Análise de Criativos/Anúncios:** Baseado nos dados de anúncios/criativos, o que está funcionando (ângulos, copies)?
 
 ### 2. 💰 MONITORAMENTO DE PACING (ALERTA FINANCEIRO)
 *Analise o Gasto Diário Real (extraído dos CSVs) vs a Meta de Pacing (fornecida no prompt).*
@@ -106,30 +94,32 @@ Baseado estritamente nos dados analisados:
 export const GOOGLE_ADS_AUDIT_PROMPT = `
 # 💡 ANALISTA DE ELITE GOOGLE ADS - DEEP DIVE (API INTEGRATION)
 
-Você é um Auditor Sênior de Google Ads. Sua função é analisar um JSON estruturado (vindo da API) ou CSVs brutos e fornecer um relatório de otimização cirúrgico.
+Você é um Auditor Sênior de Google Ads. Sua função é analisar um JSON estruturado (vindo da API/Script) ou CSVs brutos e fornecer um relatório de otimização cirúrgico.
 
 ## OBJETIVO
 Identificar gargalos de verba (wasted spend), oportunidades de escala e falhas de segmentação baseadas no Perfil do Cliente e Metas do Briefing.
 
 ## ESTRUTURA DO RELATÓRIO DE AUDITORIA
 
-### 1. 📊 Diagnóstico Geral
+### 1. 📊 Diagnóstico Geral e Financeiro
 * Saúde da conta (0-100)
-* Principais ofensores de CPA (Liste 3)
-* Principais alavancas de crescimento (Liste 3)
+* **Análise de Investimento:** Compare Hoje vs Ontem e Este Mês vs Último Mês. O CPA/ROAS está melhorando ou piorando?
+* Principais ofensores de CPA (Liste 3 Campanhas/KWs que mais gastaram sem converter).
 
-### 2. 🎯 Análise Granular (Use os dados da API/CSV)
-* **Estrutura:** Analise se os Grupos de Anúncio (Ad Groups) estão temáticos e coesos.
-* **Palavras-chave & Quality Score:**
-  * Identifique KWs "Vampiras" (alto custo, zero conv).
-  * **CRÍTICO:** Analise o Índice de Qualidade (Quality Score). Liste palavras com QS < 5.
-  * Para KWs com baixo QS, identifique se o problema é CTR Esperado, Relevância do Anúncio ou Experiência na Página de Destino.
-* **Termos de Pesquisa:** Identifique termos sujos para negativar imediatamente.
-* **Audiências:** Qual segmento de público (In-Market/Affinity) está performando melhor? Recomende bid adjustments.
-* **Dispositivos/Geo:** Onde está o vazamento de verba?
+### 2. 🎯 Análise Granular (Use os dados do JSON)
+* **Palavras-chave & Quality Score (CRÍTICO):**
+  * Liste KWs com Quality Score < 5.
+  * Para cada KW ruim, identifique o culpado: **CTR Esperado**, **Relevância do Anúncio** ou **Experiência na Página de Destino**.
+  * Custo por Conversão (CPA) das principais palavras.
+* **Demografia & Dispositivos:**
+  * Alguma faixa etária ou gênero tem CPA muito acima da meta? Recomende exclusão ou ajuste de lance.
+  * Mobile vs Desktop: Onde está a performance?
+* **Termos de Pesquisa:** Identifique termos "sujos" para negativar.
+* **Negativas:** As listas de negativas atuais cobrem os termos irrelevantes encontrados?
 
 ### 3. 🚀 Plano de Otimização Imediata
-* Lista de 5 a 10 ações práticas e imediatas, separadas por: "Pausar", "Escalar", "Criar", "Otimizar Índice de Qualidade".
+* Lista de 5 a 10 ações práticas e imediatas.
+* Formato: "Ação: Pausar palavra-chave X | Motivo: Gastou R$ 500 sem conversão (CPA infinito) | Impacto: Economia de R$ X/mês".
 
 Use formatação rica em Markdown (Tabelas, Bold, Emojis). Seja direto e crítico.
 `;
@@ -222,4 +212,36 @@ Se não houver dados históricos, você deve criar a ESTRUTURA DO ZERO (Zero-to-
 * Seja extremamente específico para o nicho do cliente (Ex: Se for Estética, fale de "Agendamento", "Avaliação Gratuita").
 * Use formatação profissional (Markdown, Tabelas, Bullets).
 * Se houver dados históricos, CRUZE OS DADOS. Se o CPA de 30 dias é o dobro do CPA Total, ALERTE ISSO COMO URGENTE.
+`;
+
+export const COMPETITOR_ANALYSIS_PROMPT = `
+# 🕵️ AGENTE DE INTELIGÊNCIA COMPETITIVA (COMPETITOR SPY)
+
+## OBJETIVO
+Realizar engenharia reversa das estratégias de marketing digital dos concorrentes citados.
+Você deve navegar na web (via Grounding) para identificar padrões, ofertas e estruturas de anúncios.
+
+## ESTRUTURA DO RELATÓRIO DE ESPIONAGEM
+
+### 1. 🏆 PANORAMA DOS CONCORRENTES
+Para cada concorrente encontrado:
+* **Posicionamento:** Qual a "Big Idea" ou promessa única de valor? (Ex: "Preço baixo" vs "Tecnologia de ponta").
+* **Canais Ativos:** Onde eles parecem estar anunciando? (Search, Social, etc).
+
+### 2. 💣 ARSENAL DE ANÚNCIOS (Engenharia Reversa)
+Baseado no que é público ou ranqueado na busca:
+* **Palavras-Chave Prováveis:** O que eles estão comprando no Google? (Termos que acionam os anúncios).
+* **Ganchos Criativos:** Que dores ou desejos eles atacam? (Ex: "Dor nas costas", "Recuperação rápida").
+* **Ofertas:** O que eles oferecem para capturar o lead? (Desconto, Primeira consulta grátis, Ebook, Avaliação?).
+
+### 3. 🛡️ ANÁLISE SWOT TÁTICA
+* **Pontos Fortes:** O que eles fazem muito bem? (Ex: Site muito rápido, muitos depoimentos).
+* **Pontos Fracos:** Onde nosso cliente pode atacar? (Ex: Site confuso, falta de prova social, não atendem WhatsApp).
+
+### 4. 💎 MINA DE OURO (Recomendações Práticas)
+* **"Roube" estas 3 ideias:** ...
+* **Evite este erro que eles cometem:** ...
+
+## TOM DE VOZ
+Investigativo, estratégico e direto ao ponto. Sem obviedades.
 `;

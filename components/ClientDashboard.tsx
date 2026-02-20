@@ -34,21 +34,30 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onSelectClient
   };
 
   const handleCreateClient = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault(); // Previne o reload da página
+    
+    if (!newClientName.trim() || !newClientIndustry.trim()) {
+        alert("Por favor, preencha todos os campos.");
+        return;
+    }
+
     setIsCreating(true);
     try {
       const newClient = await createClient(newClientName, newClientIndustry, {
         ...DEFAULT_BRIEFING,
         clientName: newClientName // Override default name
       });
+      
       if (newClient) {
         setClients([newClient, ...clients]);
         setIsModalOpen(false);
+        // Reset form
         setNewClientName('');
         setNewClientIndustry('');
       }
     } catch (error) {
-      alert("Erro ao criar cliente.");
+      console.error(error);
+      alert("Erro ao criar cliente. Tente novamente.");
     } finally {
       setIsCreating(false);
     }
@@ -176,6 +185,8 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onSelectClient
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
                 <h3 className="text-xl font-bold text-slate-800 mb-4">Novo Cliente</h3>
+                
+                {/* FORMULÁRIO ENCAPSULADO PARA GARANTIR SUBMISSÃO */}
                 <form onSubmit={handleCreateClient} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Nome da Empresa</label>
@@ -186,6 +197,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onSelectClient
                             onChange={e => setNewClientName(e.target.value)}
                             className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-brand-500 outline-none"
                             placeholder="Ex: Clínica Saúde Total"
+                            autoFocus
                         />
                     </div>
                     <div>
@@ -208,7 +220,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onSelectClient
                             Cancelar
                         </button>
                         <button 
-                            type="submit" 
+                            type="submit"
                             disabled={isCreating}
                             className="flex-1 py-2 text-white bg-brand-600 rounded hover:bg-brand-500 font-medium text-sm flex justify-center items-center gap-2"
                         >

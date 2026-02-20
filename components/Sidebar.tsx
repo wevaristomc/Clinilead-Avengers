@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, FileText, Settings, Activity, ArrowLeft } from 'lucide-react';
+import { LayoutDashboard, FileText, Settings, Activity, ArrowLeft, Terminal } from 'lucide-react';
 import { AppState } from '../types';
 
 interface SidebarProps {
@@ -14,6 +14,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, client
   const navItems = [
     { id: 'input', label: 'Painel de Controle', icon: LayoutDashboard },
     { id: 'report', label: 'Ver Relatório', icon: FileText },
+    { id: 'logs', label: 'Logs do Sistema', icon: Terminal },
     { id: 'settings', label: 'Configurações', icon: Settings },
   ] as const;
 
@@ -60,7 +61,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, client
           <p className="text-xs text-slate-400 mb-1">Status do Modelo</p>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-            <span className="text-xs font-semibold text-emerald-400">Gemini 3 Pro</span>
+            <span className="text-xs font-semibold text-emerald-400">Gemini 2.5 Flash</span>
           </div>
         </div>
       </div>

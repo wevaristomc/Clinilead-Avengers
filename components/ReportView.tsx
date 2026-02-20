@@ -1,10 +1,11 @@
 
 import React, { useRef, useState } from 'react';
-import { Copy, Check, Download, Activity, FileText, Printer, FileType } from 'lucide-react';
+import { Copy, Check, Download, Activity, FileText, Printer, FileType, Save } from 'lucide-react';
 
 interface ReportViewProps {
   report: string | null;
   clientName?: string;
+  onSave?: () => void;
 }
 
 // Helper to extract Pacing Data from the AI Text for the Chart
@@ -27,9 +28,11 @@ const extractPacingData = (text: string) => {
   }).filter(x => x !== null);
 };
 
-export const ReportView: React.FC<ReportViewProps> = ({ report, clientName }) => {
+export const ReportView: React.FC<ReportViewProps> = ({ report, clientName, onSave }) => {
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedSuccess, setSavedSuccess] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
   if (!report) {
@@ -92,6 +95,17 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, clientName }) =>
     });
   };
 
+  const handleSave = async () => {
+      if (onSave) {
+          setIsSaving(true);
+          await onSave();
+          setIsSaving(false);
+          setSavedSuccess(true);
+          // Optional: Reset success message after some time
+          setTimeout(() => setSavedSuccess(false), 3000);
+      }
+  };
+
   const pacingData = extractPacingData(report);
 
   return (
@@ -108,7 +122,21 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, clientName }) =>
                <p className="text-xs text-slate-500">{new Date().toLocaleDateString('pt-BR')} • Pronto para Exportação</p>
             </div>
          </div>
-         <div className="flex gap-2 w-full md:w-auto justify-end">
+         <div className="flex gap-2 w-full md:w-auto justify-end flex-wrap">
+            {onSave && (
+                <button
+                    onClick={handleSave}
+                    disabled={isSaving || savedSuccess}
+                    className={`flex items-center gap-2 px-3 py-2 text-xs font-bold rounded border transition-colors shadow-sm ${
+                        savedSuccess 
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                        : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
+                    }`}
+                >
+                    {savedSuccess ? <Check className="w-3 h-3" /> : <Save className="w-3 h-3" />}
+                    {savedSuccess ? 'Salvo no Histórico' : isSaving ? 'Salvando...' : 'Aprovar & Salvar'}
+                </button>
+            )}
             <button 
               onClick={handleCopyRichText}
               className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-300 rounded hover:bg-slate-50 transition-colors shadow-sm"
@@ -136,15 +164,17 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, clientName }) =>
           className="bg-white shadow-2xl w-full max-w-[210mm] min-h-[297mm] p-[15mm] md:p-[20mm] text-slate-800"
           style={{ fontFamily: '"Inter", sans-serif' }}
         >
-          {/* PDF HEADER */}
-          <div className="border-b-2 border-slate-800 pb-4 mb-8 flex justify-between items-end">
-            <div>
-               <h1 className="text-3xl font-bold text-slate-900 leading-none mb-2">RELATÓRIO DE INTELIGÊNCIA</h1>
-               <p className="text-sm text-slate-500 font-medium tracking-widest uppercase">CLINILEAD AVENGER • PERFORMANCE</p>
-            </div>
-            <div className="text-right">
-              <div className="text-xl font-bold text-brand-600">{clientName || 'Cliente'}</div>
-              <div className="text-xs text-slate-400">{new Date().toLocaleDateString('pt-BR')}</div>
+          {/* PDF HEADER - CENTERED */}
+          <div className="border-b-2 border-slate-800 pb-6 mb-8 text-center">
+            <h1 className="text-3xl font-black text-slate-900 leading-tight mb-2 uppercase tracking-tight">RELATÓRIO DE INTELIGÊNCIA</h1>
+            <p className="text-xs text-slate-500 font-bold tracking-[0.2em] uppercase mb-4">CLINILEAD AVENGER • PERFORMANCE CORE</p>
+            
+            {/* Dynamic Client Name & Date */}
+            <div className="flex flex-col items-center justify-center gap-1">
+              <div className="text-2xl font-bold text-brand-600 uppercase tracking-tight">{clientName || 'CLIENTE NÃO IDENTIFICADO'}</div>
+              <div className="text-xs text-slate-400 font-medium bg-slate-50 px-3 py-1 rounded-full border border-slate-100 inline-block mt-2">
+                {new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              </div>
             </div>
           </div>
 
@@ -242,18 +272,29 @@ const MarkdownRenderer = ({ content }: { content: string }) => {
     else if (line.trim().startsWith('|')) {
         if (!inTable) inTable = true;
         const cells = line.split('|').filter(c => c.trim() !== '').map(c => c.trim());
-        const isHeader = lines[i+1]?.includes('---');
+        const isHeader = lines[i+1]?.includes('---') || (lines[i-1] && !lines[i-1].trim().startsWith('|') && !lines[i-1].includes('---'));
         
         if (!line.includes('---')) { // Skip separator lines
            tableRows.push(
              <tr key={i} className={isHeader ? "bg-slate-100 text-slate-700 font-bold uppercase text-xs" : "border-b border-slate-100 hover:bg-slate-50"}>
-                {cells.map((cell, cIdx) => (
-                  <td key={cIdx} className="p-2 text-xs text-left border-r border-slate-200 last:border-0 align-top">
-                    {cell.includes('❌') ? <span className="text-red-600 font-bold flex items-center gap-1">❌ <span className="hidden print:inline">DESVIO</span></span> : 
-                     cell.includes('✅') ? <span className="text-emerald-600 font-bold flex items-center gap-1">✅ <span className="hidden print:inline">OK</span></span> : 
-                     cell}
-                  </td>
-                ))}
+                {cells.map((cell, cIdx) => {
+                    // Force Layout: 4 Columns
+                    let widthClass = "";
+                    if (cells.length === 4) {
+                        if (cIdx === 0) widthClass = "w-[30%]"; // Plan
+                        if (cIdx === 1) widthClass = "w-[30%]"; // Execution
+                        if (cIdx === 2) widthClass = "w-[10%] text-center"; // Status
+                        if (cIdx === 3) widthClass = "w-[30%]"; // Correction
+                    }
+
+                    return (
+                        <td key={cIdx} className={`p-2 text-xs border-r border-slate-200 last:border-0 align-top ${widthClass}`}>
+                            {cell.includes('❌') ? <span className="text-red-600 font-bold flex items-center justify-center gap-1">❌ <span className="hidden print:inline">DESVIO</span></span> : 
+                             cell.includes('✅') ? <span className="text-emerald-600 font-bold flex items-center justify-center gap-1">✅ <span className="hidden print:inline">OK</span></span> : 
+                             cell}
+                        </td>
+                    );
+                })}
              </tr>
            );
         }
@@ -264,7 +305,7 @@ const MarkdownRenderer = ({ content }: { content: string }) => {
             inTable = false;
             rendered.push(
                <div key={`table-${i}`} className="overflow-hidden rounded border border-slate-300 my-4 break-inside-avoid shadow-sm">
-                  <table className="w-full border-collapse">{tableRows}</table>
+                  <table className="w-full border-collapse table-fixed">{tableRows}</table>
                </div>
             );
             tableRows = [];
@@ -289,7 +330,7 @@ const MarkdownRenderer = ({ content }: { content: string }) => {
   if (tableRows.length > 0) {
       rendered.push(
         <div key="table-end" className="overflow-hidden rounded border border-slate-300 my-4 break-inside-avoid shadow-sm">
-           <table className="w-full border-collapse">{tableRows}</table>
+           <table className="w-full border-collapse table-fixed">{tableRows}</table>
         </div>
      );
   }

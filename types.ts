@@ -1,20 +1,22 @@
 
+export interface UserProfile {
+  id: string;
+  email: string;
+}
+
 export interface PlatformConfig {
   enabled: boolean;
-  budget: string; // Keeping as string for input handling, converted to number for calc
+  budget: string;
   targetCPA: string;
 }
 
 export interface ClientBriefing {
-  clientName: string; // New field for personalization
+  clientName: string;
   objective: string;
   priorities: string;
   restrictions: string;
   targetAudience: string;
   competitors: string;
-  rawInput?: string;
-  
-  // New Granular Budget Structure
   platforms: {
     meta: PlatformConfig;
     google: PlatformConfig;
@@ -30,82 +32,64 @@ export interface ActionPlanItem {
   deadline: string;
 }
 
-// Detailed API Data Structure
-export interface GoogleAdsAPIData {
-  accountInfo: {
-    id: string;
-    name: string;
-    currency: string;
-  };
-  campaigns: Array<{
-    id: string;
-    name: string;
-    status: string;
-    budget: number;
-    spend: number;
-    conversions: number;
-    cpa: number;
-    roas: number;
-  }>;
-  adGroups: Array<{
-    id: string;
-    campaignName: string;
-    name: string;
-    status: string;
-    cpa: number;
-    spend: number;
-  }>;
-  ads: Array<{
-    id: string;
-    adGroupName: string;
-    headline: string;
-    strength: string; // POOR, AVERAGE, EXCELLENT
-    clicks: number;
-    ctr: number;
-  }>;
-  keywords: Array<{
-    text: string;
-    matchType: string;
-    qualityScore: number;
-    spend: number;
-    conversions: number;
-    cpa: number;
-    roas: number;
-  }>;
-  searchTerms: Array<{
-    text: string;
-    campaignName: string;
-    impressions: number;
-    clicks: number;
-    cost: number;
-    conversions: number;
-  }>;
-  audiences: Array<{
-    name: string;
-    type: string; // AFFINITY, IN_MARKET, CUSTOM
-    impressions: number;
-    cpa: number;
-    roas: number;
-  }>;
-}
-
-// Auth & Client Management Types
-export interface UserProfile {
-  id: string;
-  email: string;
-}
-
 export interface Client {
   id: string;
   name: string;
-  industry?: string;
-  briefing_data?: Partial<ClientBriefing>;
-  created_at?: string;
+  industry: string;
+  briefing_data?: ClientBriefing;
+  created_at: string;
+  email?: string;
+  phone?: string;
 }
 
+export interface HistoricalReport {
+  id: string;
+  title: string;
+  type: string;
+  created_at: string;
+  period_start: string;
+  period_end: string;
+  content_snippet?: string;
+}
+
+export interface SystemLog {
+  id: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  message: string;
+  details?: string;
+  timestamp: string;
+}
+
+export interface GoogleAdsAPIData {
+  accountInfo: any;
+  investments: any;
+  campaigns: any[];
+  adGroups: any[];
+  keywords: any[];
+  negativeKeywords: any[];
+  searchTerms: any[];
+  ads: any[];
+  demographics: any;
+}
+
+export interface MetaAdsAPIData {
+  insights: any;
+  campaigns: any[];
+  adSets: any[];
+  ads: any[];
+}
+
+export type AIProvider = 'gemini' | 'openai' | 'anthropic';
+
 export interface AppState {
-  apiKey: string;
-  // Supabase Config
+  apiKey: string; // Gemini Key (Legacy name)
+  
+  // NEW: Multi-Model Support
+  aiProvider: AIProvider;
+  openaiKey: string;
+  anthropicKey: string;
+
+  // Supabase Config (Legacy/Replaced by Firebase)
   supabaseUrl: string;
   supabaseKey: string;
   
@@ -124,26 +108,47 @@ export interface AppState {
   };
   previousReportsFiles: File[];
   
-  // Database History (fetched from Supabase)
+  // Database History (fetched from Firestore)
   dbHistoryAvailable: boolean;
-  dbHistoryContext: string;
+  dbHistoryReports: HistoricalReport[]; 
+  reportCustomInstructions: string; 
 
   // Meta Ads Data Sources
-  metaFiles: File[]; // Activity Logs (History)
-  metaPerformanceFiles: File[]; // Performance Data (CSV)
-  metaSheetUrl: string; // Performance Data (Sheets)
+  metaFiles: File[]; 
+  metaHistoryText: string; // NEW: Pasted History Text
+  metaPerformanceFiles: File[]; 
+  metaSheetUrl: string; 
   metaSheetContent: string | null;
+  metaAdsData: MetaAdsAPIData | null;
+  // NEW: Meta Demographics
+  metaDemographicsFile: File | null;
 
-  googleFiles: File[]; // Activity Logs (History)
+  googleFiles: File[]; 
   
   // Specific Real Data Files for Audit (Legacy CSV Mode)
   googleKeywordsFile: File | null;
   googleSearchTermsFile: File | null;
   googleAdsFile: File | null;
   
+  // NEW: Expanded Google Ads Files (Separated)
+  googleAuctionInsightsFile: File | null;
+  googleDevicesFile: File | null;
+  googleAgeFile: File | null; // Age separate
+  googleGenderFile: File | null; // Gender separate
+  googleLocationsFile: File | null;
+  googleSchedulesFile: File | null;
+  
+  // NEW: Strategic Context / Previous Diagnostics
+  diagnosticFiles: File[];
+  diagnosticUrl: string;
+  diagnosticContent: string | null;
+
+  // NEW: Website Behavior Data (Clarity/Analytics Prints)
+  clarityFiles: File[];
+
   // API Data Mode
   googleAdsData: GoogleAdsAPIData | null;
-  googleAdsJsonInput: string; // For pasting raw JSON from API scripts
+  googleAdsJsonInput: string; 
 
   // Onboarding / Diagnostic Mode
   clientHasHistory: boolean;
@@ -151,16 +156,11 @@ export interface AppState {
 
   isGenerating: boolean;
   generatedReport: string | null;
-  activeTab: 'input' | 'report' | 'settings';
+  activeTab: 'input' | 'report' | 'settings' | 'logs';
   googleAdsConnected: boolean;
   dataSourceMode: 'demo' | 'real' | 'api_bridge';
-}
-
-export enum ReportType {
-  DAILY = 'DAILY',
-  WEEKLY = 'WEEKLY',
-  CREATIVE = 'CREATIVE',
-  STRUCTURE = 'STRUCTURE',
-  GOOGLE_AUDIT = 'GOOGLE_AUDIT',
-  ONBOARDING = 'ONBOARDING'
+  metaDataSourceMode: 'demo' | 'csv' | 'json_bridge'; 
+  
+  // System Logs
+  systemLogs: SystemLog[];
 }
